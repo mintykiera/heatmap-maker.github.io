@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   drawModeBtn.classList.add('active');
   brushSizeValue.textContent = `${currentBrushSize}px`;
-  tempValue.textContent = `${currentTemp}°C`;
+  tempValue.textContent = `${currentTemp}Â°C`;
   canvas.width = 800;
   canvas.height = 600;
   canvasContainer.style.display = 'block';
@@ -53,9 +53,10 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   temperatureSlider.addEventListener('input', (e) => {
     currentTemp = parseInt(e.target.value);
-    tempValue.textContent = `${currentTemp}°C`;
+    tempValue.textContent = `${currentTemp}Â°C`;
   });
   
+  // Mouse Events
   canvas.addEventListener('mousedown', startDrawing);
   canvas.addEventListener('mousemove', draw);
   canvas.addEventListener('mouseup', stopDrawing);
@@ -100,10 +101,28 @@ document.addEventListener('DOMContentLoaded', function () {
     drawModeBtn.classList.toggle('active', mode === 'draw');
   }
 
-  function startDrawing(e) {
-    isDrawing = true;
+  function getEventCoordinates(e) {
     const rect = canvas.getBoundingClientRect();
-    [lastX, lastY] = [e.clientX - rect.left, e.clientY - rect.top];
+    let x, y;
+    if (e.touches && e.touches.length > 0) {
+      // Handle Touch Event
+      x = e.touches[0].clientX - rect.left;
+      y = e.touches[0].clientY - rect.top;
+    } else {
+      // Handle Mouse Event
+      x = e.clientX - rect.left;
+      y = e.clientY - rect.top;
+    }
+    return [x, y];
+  }
+
+  function startDrawing(e) {
+    // Prevent default touch behavior (like scrolling)
+    if (e.type.startsWith('touch')) {
+        e.preventDefault();
+    }
+    isDrawing = true;
+    [lastX, lastY] = getEventCoordinates(e); // Use helper function
     currentStrokePoints = [{ x: lastX, y: lastY }];
     if (currentMode === 'point') {
       addStroke();
@@ -112,11 +131,13 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function draw(e) {
+    // Prevent default touch behavior (like scrolling)
+    if (e.type.startsWith('touch')) {
+        e.preventDefault();
+    }
     if (!isDrawing || currentMode !== 'draw') return;
     requestAnimationFrame(() => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const [x, y] = getEventCoordinates(e); // Use helper function
       currentStrokePoints.push({ x, y });
       redrawCanvas();
       [lastX, lastY] = [x, y];
@@ -133,25 +154,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  function addStroke() {
-    if (currentStrokePoints.length === 0) return;
-    const stroke = {
-      id: Date.now(),
-      name: `Zone ${zoneCounter++}`,
-      points: [...currentStrokePoints],
-      temp: currentTemp,
-    };
-    dataStrokes.push(stroke);
-    selectedStrokeId = stroke.id;
-    updateTable();
-    redrawCanvas();
-  }
-
   function handleCanvasClick(e) {
     if (isDrawing) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const [x, y] = getEventCoordinates(e); // Use helper function
     let closestStrokeId = null;
     let minDistance = Infinity;
 
@@ -170,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function () {
       updateTable();
     }
   }
-
+  
   function redrawCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (currentImage) {
@@ -205,6 +210,20 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     ctx.drawImage(tempCanvas, 0, 0);
+  }
+
+  function addStroke() {
+    if (currentStrokePoints.length === 0) return;
+    const stroke = {
+      id: Date.now(),
+      name: `Zone ${zoneCounter++}`,
+      points: [...currentStrokePoints],
+      temp: currentTemp,
+    };
+    dataStrokes.push(stroke);
+    selectedStrokeId = stroke.id;
+    updateTable();
+    redrawCanvas();
   }
 
   function getColorForTemperature(temp) {
@@ -275,10 +294,10 @@ document.addEventListener('DOMContentLoaded', function () {
                        <input type="number" min="0" max="100" value="${
                          stroke.temp
                        }" class="temp-input" data-id="${stroke.id}">
-                       <span>°C</span>
+                       <span>Â°C</span>
                     </div>
                 </td>
-                <td class="fahrenheit-cell">${fahrenheit.toFixed(1)}°F</td>
+                <td class="fahrenheit-cell">${fahrenheit.toFixed(1)}Â°F</td>
                 <td class="action-cell">
                     <button class="action-btn" data-action="decrease" data-id="${
                       stroke.id
@@ -344,7 +363,7 @@ document.addEventListener('DOMContentLoaded', function () {
       row.querySelector('.fahrenheit-cell').textContent = `${(
         (stroke.temp * 9) / 5 +
         32
-      ).toFixed(1)}°F`;
+      ).toFixed(1)}Â°F`;
     }
     redrawCanvas();
   }
