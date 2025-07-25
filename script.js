@@ -101,20 +101,26 @@ document.addEventListener('DOMContentLoaded', function () {
     drawModeBtn.classList.toggle('active', mode === 'draw');
   }
 
-  function getEventCoordinates(e) {
-    const rect = canvas.getBoundingClientRect();
-    let x, y;
-    if (e.touches && e.touches.length > 0) {
-      // Handle Touch Event
-      x = e.touches[0].clientX - rect.left;
-      y = e.touches[0].clientY - rect.top;
-    } else {
-      // Handle Mouse Event
-      x = e.clientX - rect.left;
-      y = e.clientY - rect.top;
-    }
-    return [x, y];
+function getEventCoordinates(e) {
+  const rect = canvas.getBoundingClientRect();
+
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+
+  let clientX, clientY;
+  if (e.touches && e.touches.length > 0) {
+    clientX = e.touches[0].clientX;
+    clientY = e.touches[0].clientY;
+  } else {
+    clientX = e.clientX;
+    clientY = e.clientY;
   }
+  
+  const x = (clientX - rect.left) * scaleX;
+  const y = (clientY - rect.top) * scaleY;
+
+  return [x, y];
+}
 
   function startDrawing(e) {
     // Prevent default touch behavior (like scrolling)
