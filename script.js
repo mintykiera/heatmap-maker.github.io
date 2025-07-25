@@ -55,11 +55,16 @@ document.addEventListener('DOMContentLoaded', function () {
     currentTemp = parseInt(e.target.value);
     tempValue.textContent = `${currentTemp}°C`;
   });
+  
   canvas.addEventListener('mousedown', startDrawing);
   canvas.addEventListener('mousemove', draw);
   canvas.addEventListener('mouseup', stopDrawing);
   canvas.addEventListener('mouseout', stopDrawing);
   canvas.addEventListener('click', handleCanvasClick);
+
+  canvas.addEventListener('touchstart', startDrawing);
+  canvas.addEventListener('touchmove', draw);
+  canvas.addEventListener('touchend', stopDrawing);
 
   tableBody.addEventListener('input', handleTableInput);
   tableBody.addEventListener('click', handleTableButtonClick);
