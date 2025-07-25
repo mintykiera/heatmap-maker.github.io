@@ -105,9 +105,18 @@ h1 {
     border: 1px solid #202225;
 }
 
-#heatmapCanvas { display: block; background: #1e1f22; max-width: 100%; }
+#heatmapCanvas {
+    display: block;
+    background: #1e1f22;
+    max-width: 100%;
+    touch-action: none;
+}
 
-.controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
 
 .btn {
     padding: 10px 16px;
