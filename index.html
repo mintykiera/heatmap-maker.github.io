@@ -50,13 +50,8 @@
             <canvas id="heatmapCanvas"></canvas>
           </div>
 
+          <!-- MODIFIED: Simplified controls for a unified drawing mode -->
           <div class="controls">
-            <button class="btn" id="pointModeBtn">
-              <i class="fas fa-dot-circle"></i> Plot Points
-            </button>
-            <button class="btn active" id="drawModeBtn">
-              <i class="fas fa-paint-brush"></i> Draw Areas
-            </button>
             <button class="btn" id="clearBtn">
               <i class="fas fa-trash-alt"></i> Clear All
             </button>
@@ -66,9 +61,9 @@
             <div class="slider-container">
               <div class="slider-label">
                 <span>Brush Size</span>
-                <span class="temp-value" id="brushSizeValue">15px</span>
+                <span class="temp-value" id="brushSizeValue">30px</span>
               </div>
-              <input type="range" id="brushSize" min="5" max="50" value="15" />
+              <input type="range" id="brushSize" min="10" max="80" value="30" />
             </div>
 
             <div class="slider-container">
@@ -87,8 +82,8 @@
           </div>
 
           <div class="cluster-info">
-            <i class="fas fa-lightbulb"></i> Each drawn area is a thermal zone
-            with adjustable temperature.
+            <i class="fas fa-lightbulb"></i> Click to plot a point, or drag to
+            draw a thermal zone.
           </div>
         </div>
 
@@ -105,9 +100,7 @@
                   <th>Actions</th>
                 </tr>
               </thead>
-              <tbody id="tableBody">
-                <!-- Data is populated by script.js -->
-              </tbody>
+              <tbody id="tableBody"></tbody>
             </table>
           </div>
 
@@ -117,30 +110,36 @@
               <li>
                 <strong>Upload an image</strong> to serve as your background.
               </li>
-              <li>Draw thermal zones directly on the canvas.</li>
-              <li>Adjust temperature using the sliders or number inputs.</li>
-              <li>Click on a drawn zone to select and highlight it.</li>
-              <li>Export your thermal data for analysis.</li>
+              <li>Click or drag on the canvas to create thermal zones.</li>
+              <li>Adjust temperature and brush size using the sliders.</li>
+              <li>Click a zone in the table to select it for editing.</li>
+              <li>Export your final heatmap and data summary.</li>
             </ul>
           </div>
 
           <div class="legend">
             <div class="legend-title">Thermal Color Scale</div>
             <div class="legend-gradient-bar"></div>
-            <div class="legend-labels">
-              <span>0°C</span>
-              <span>25°C</span>
-              <span>50°C</span>
-              <span>75°C</span>
-              <span>100°C</span>
+            <div class="legend-labels" id="legendLabels"></div>
+            <div class="legend-controls">
+              <div class="temp-range-input">
+                <label for="minTemp">Min °C</label>
+                <input type="number" id="minTemp" value="0" />
+              </div>
+              <div class="temp-range-input">
+                <label for="maxTemp">Max °C</label>
+                <input type="number" id="maxTemp" value="100" />
+              </div>
             </div>
           </div>
 
           <div class="controls">
             <button class="btn" id="exportBtn">
-              <i class="fas fa-file-export"></i> Export Thermal Data
+              <i class="fas fa-file-export"></i> Export Data Summary
             </button>
-            <button id="exportImageBtn" class="btn">Export as PNG</button>
+            <button id="exportImageBtn" class="btn">
+              <i class="fas fa-file-image"></i> Export as PNG
+            </button>
             <button class="btn" id="sampleBtn">
               <i class="fas fa-bolt"></i> Generate Sample
             </button>
