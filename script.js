@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', function () {
-  // --- Element selection ---
   const uploadArea = document.getElementById('uploadArea');
   const imageUpload = document.getElementById('imageUpload');
   const canvas = document.getElementById('heatmapCanvas');
@@ -20,25 +19,21 @@ document.addEventListener('DOMContentLoaded', function () {
   const maxTempInput = document.getElementById('maxTemp');
   const legendLabelsContainer = document.getElementById('legendLabels');
 
-  // --- State variables ---
   let isDrawing = false;
   let dataStrokes = [];
   let currentStrokePoints = [];
   let currentImage = null;
-  let currentBrushSize = 30; // A larger default for better visuals
+  let currentBrushSize = 30;
   let currentTemp = 25;
   let selectedStrokeId = null;
   let zoneCounter = 1;
 
-  // MODIFIED: Tooltip Y offset is smaller to be closer to the cursor
   const TOOLTIP_OFFSET_Y = -35;
   let minTemp = 0;
   let maxTemp = 100;
 
-  // NEW: Constant for performance optimization - simplifies drawn lines
   const MIN_POINT_DISTANCE_SQ = 10 * 10;
 
-  // --- Off-screen canvases for optimized rendering ---
   const heatmapTempCanvas = document.createElement('canvas');
   const heatmapTempCtx = heatmapTempCanvas.getContext('2d', {
     willReadFrequently: true,
@@ -46,7 +41,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const drawingPreviewCanvas = document.createElement('canvas');
   const drawingPreviewCtx = drawingPreviewCanvas.getContext('2d');
 
-  // --- Initial Setup ---
   brushSizeSlider.value = currentBrushSize;
   brushSizeValue.textContent = `${currentBrushSize}px`;
   tempValue.textContent = `${currentTemp}°C`;
@@ -57,7 +51,6 @@ document.addEventListener('DOMContentLoaded', function () {
   requestAnimationFrame(updateFpsCounter);
   setInterval(updatePerformanceStats, 1000);
 
-  // --- Event Listeners ---
   uploadArea.addEventListener('click', () => imageUpload.click());
   imageUpload.addEventListener('change', handleImageUpload);
   document.getElementById('clearBtn').addEventListener('click', clearCanvas);
@@ -76,7 +69,6 @@ document.addEventListener('DOMContentLoaded', function () {
     tempValue.textContent = `${currentTemp.toFixed(1)}°C`;
   });
 
-  // --- Unified Mouse/Touch Event Handlers ---
   canvas.addEventListener('mousedown', startDrawing);
   canvas.addEventListener('mousemove', handleInteraction);
   canvas.addEventListener('mouseup', stopDrawing);
@@ -88,10 +80,10 @@ document.addEventListener('DOMContentLoaded', function () {
   canvas.addEventListener('touchmove', handleInteraction, { passive: false });
   canvas.addEventListener('touchend', stopDrawing);
 
-  tableBody.addEventListener('click', handleTableInteraction);
-  tableBody.addEventListener('input', handleTableInput);
+  tableBody.addEventListener('click', handleTableClick);
+  tableBody.addEventListener('input', handleTableSliderInput);
+  tableBody.addEventListener('change', handleTableInputChange);
 
-  // NEW: Click outside the table to deselect
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.data-table')) {
       if (selectedStrokeId !== null) {
@@ -117,12 +109,12 @@ document.addEventListener('DOMContentLoaded', function () {
           width = Math.floor(width * ratio);
           height = Math.floor(height * ratio);
         }
-        canvas.width = width;
-        canvas.height = height;
-        heatmapTempCanvas.width = width;
-        heatmapTempCanvas.height = height;
-        drawingPreviewCanvas.width = width;
-        drawingPreviewCanvas.height = height;
+        [canvas.width, canvas.height] = [width, height];
+        [heatmapTempCanvas.width, heatmapTempCanvas.height] = [width, height];
+        [drawingPreviewCanvas.width, drawingPreviewCanvas.height] = [
+          width,
+          height,
+        ];
         clearCanvas();
       };
       img.src = event.target.result;
@@ -139,7 +131,6 @@ document.addEventListener('DOMContentLoaded', function () {
     return [(clientX - rect.left) * scaleX, (clientY - rect.top) * scaleY];
   }
 
-  // --- UNIFIED & OPTIMIZED DRAWING LOGIC ---
   function startDrawing(e) {
     if (e.type.startsWith('touch')) e.preventDefault();
     isDrawing = true;
@@ -148,27 +139,21 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function handleInteraction(e) {
-    if (isDrawing) {
-      draw(e);
-    } else {
-      handleCanvasHover(e);
-    }
+    if (isDrawing) draw(e);
+    else handleCanvasHover(e);
   }
 
   function draw(e) {
     if (e.type.startsWith('touch')) e.preventDefault();
     if (!isDrawing) return;
-
     requestAnimationFrame(() => {
       const [x, y] = getEventCoordinates(e);
       const lastPoint = currentStrokePoints[currentStrokePoints.length - 1];
       const dx = x - lastPoint.x;
       const dy = y - lastPoint.y;
-
       if (dx * dx + dy * dy > MIN_POINT_DISTANCE_SQ) {
         currentStrokePoints.push({ x, y });
       }
-
       drawingPreviewCtx.clearRect(
         0,
         0,
@@ -180,7 +165,6 @@ document.addEventListener('DOMContentLoaded', function () {
         temp: currentTemp,
         brushSize: currentBrushSize,
       });
-
       redrawCanvas();
     });
   }
@@ -188,11 +172,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function stopDrawing() {
     if (!isDrawing) return;
     isDrawing = false;
-
-    if (currentStrokePoints.length > 0) {
-      addStroke();
-    }
-
+    if (currentStrokePoints.length > 0) addStroke();
     drawingPreviewCtx.clearRect(
       0,
       0,
@@ -210,17 +190,16 @@ document.addEventListener('DOMContentLoaded', function () {
       temp: currentTemp,
       brushSize: currentBrushSize,
     };
-
     dataStrokes.push(stroke);
     selectedStrokeId = stroke.id;
     updateTable();
+    redrawCanvas();
   }
 
   function handleCanvasHover(e) {
     const [x, y] = getEventCoordinates(e);
     let hoveredStroke = null;
     let minDistance = Infinity;
-
     for (const stroke of dataStrokes) {
       for (const point of stroke.points) {
         const distance = Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2);
@@ -230,7 +209,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       }
     }
-
     if (hoveredStroke) {
       tooltip.style.display = 'block';
       tooltip.style.left = `${e.clientX}px`;
@@ -247,24 +225,19 @@ document.addEventListener('DOMContentLoaded', function () {
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1.0;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (currentImage) {
+    if (currentImage)
       ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
-    } else {
+    else {
       ctx.fillStyle = '#1e1f22';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
-
     drawHeatmap();
-
     if (isDrawing) {
       ctx.globalAlpha = 0.5;
       ctx.drawImage(drawingPreviewCanvas, 0, 0);
-      ctx.globalAlpha = 1.0;
     }
   }
 
-  // --- NEW & IMPROVED: Heatmap Rendering Logic ---
   function drawHeatmap() {
     if (dataStrokes.length === 0) return;
     heatmapTempCtx.clearRect(
@@ -273,9 +246,8 @@ document.addEventListener('DOMContentLoaded', function () {
       heatmapTempCanvas.width,
       heatmapTempCanvas.height
     );
-    for (const stroke of dataStrokes) {
+    for (const stroke of dataStrokes)
       drawStrokeOnContext(heatmapTempCtx, stroke);
-    }
     heatmapTempCtx.filter = 'blur(35px)';
     heatmapTempCtx.drawImage(heatmapTempCanvas, 0, 0);
     heatmapTempCtx.filter = 'none';
@@ -286,11 +258,9 @@ document.addEventListener('DOMContentLoaded', function () {
     ctx.globalAlpha = 1.0;
   }
 
-  // --- FIXED: getColorForTemperature now correctly uses the custom min/max range ---
   function getColorForTemperature(temp) {
     let t = (temp - minTemp) / (maxTemp - minTemp);
     t = Math.max(0, Math.min(1, t));
-
     let r, g, b;
     if (t < 0.25) {
       r = 0;
@@ -330,44 +300,47 @@ document.addEventListener('DOMContentLoaded', function () {
       row.dataset.strokeId = stroke.id;
       if (stroke.id === selectedStrokeId)
         row.style.backgroundColor = 'rgba(88, 101, 242, 0.3)';
-
       const fahrenheit = (stroke.temp * 9) / 5 + 32;
-      row.innerHTML = `
-        <td><input type="text" value="${
-          stroke.name
-        }" class="zone-name-input" data-id="${stroke.id}"></td>
-        <td class="temp-cell">
-            <input type="range" min="${minTemp}" max="${maxTemp}" step="0.1" value="${
+      row.innerHTML = `<td><input type="text" value="${
+        stroke.name
+      }" class="zone-name-input" data-id="${
+        stroke.id
+      }"></td><td class="temp-cell"><input type="range" min="${minTemp}" max="${maxTemp}" step="0.1" value="${
         stroke.temp
-      }" class="temp-slider" data-id="${stroke.id}">
-            <div class="temp-input-group">
-                <input type="number" min="${minTemp}" max="${maxTemp}" step="0.1" value="${stroke.temp.toFixed(
+      }" class="temp-slider" data-id="${
+        stroke.id
+      }"><div class="temp-input-group"><input type="number" min="${minTemp}" max="${maxTemp}" step="0.1" value="${stroke.temp.toFixed(
         1
-      )}" class="temp-input" data-id="${stroke.id}">
-                <span>°C</span>
-            </div>
-        </td>
-        <td class="fahrenheit-cell">${fahrenheit.toFixed(1)}°F</td>
-        <td class="action-cell">
-            <button class="action-btn" data-action="delete" data-id="${
-              stroke.id
-            }"><i class="fas fa-trash"></i></button>
-        </td>`;
+      )}" class="temp-input" data-id="${
+        stroke.id
+      }"><span>°C</span></div></td><td class="fahrenheit-cell">${fahrenheit.toFixed(
+        1
+      )}°F</td><td class="action-cell"><button class="action-btn" data-action="delete" data-id="${
+        stroke.id
+      }"><i class="fas fa-trash"></i></button></td>`;
       tableBody.appendChild(row);
     }
   }
 
-  function handleTableInput(e) {
+  function handleTableSliderInput(e) {
+    if (e.target.classList.contains('temp-slider')) {
+      const id = parseInt(e.target.dataset.id);
+      const newTemp = parseFloat(e.target.value);
+      if (!isNaN(newTemp)) {
+        updateStrokeUI(id, newTemp);
+      }
+    }
+  }
+
+  function handleTableInputChange(e) {
     const target = e.target;
     const id = parseInt(target.dataset.id);
     const stroke = dataStrokes.find((s) => s.id === id);
     if (!stroke) return;
+
     if (target.classList.contains('zone-name-input')) {
       stroke.name = target.value;
-    } else if (
-      target.classList.contains('temp-slider') ||
-      target.classList.contains('temp-input')
-    ) {
+    } else if (target.classList.contains('temp-input')) {
       let newTemp = parseFloat(target.value);
       if (isNaN(newTemp)) {
         target.value = stroke.temp.toFixed(1);
@@ -377,25 +350,28 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // --- NEW: Handles row selection for highlighting and delete button clicks ---
-  function handleTableInteraction(e) {
-    const row = e.target.closest('tr');
+  function handleTableClick(e) {
+    e.stopPropagation();
     const button = e.target.closest('button.action-btn');
-    e.stopPropagation(); // Prevent document click listener from firing
+    const row = e.target.closest('tr');
 
     if (button) {
-      const { action, id } = button.dataset;
+      const { id } = button.dataset;
       const strokeId = parseInt(id);
-      if (action === 'delete') {
-        dataStrokes = dataStrokes.filter((s) => s.id !== strokeId);
-        if (selectedStrokeId === strokeId) selectedStrokeId = null;
-        redrawCanvas();
-        updateTable();
-      }
-    } else if (row) {
-      selectedStrokeId = parseInt(row.dataset.strokeId);
+      dataStrokes = dataStrokes.filter((s) => s.id !== strokeId);
+      if (selectedStrokeId === strokeId) selectedStrokeId = null;
       updateTable();
       redrawCanvas();
+      return;
+    }
+
+    if (row) {
+      const newSelectedId = parseInt(row.dataset.strokeId);
+      if (selectedStrokeId !== newSelectedId) {
+        selectedStrokeId = newSelectedId;
+        updateTable();
+        redrawCanvas();
+      }
     }
   }
 
@@ -403,7 +379,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const stroke = dataStrokes.find((s) => s.id === id);
     if (!stroke) return;
     stroke.temp = newTemp;
-
     const row = tableBody.querySelector(`tr[data-stroke-id="${id}"]`);
     if (row) {
       row.querySelector('.temp-slider').value = stroke.temp;
@@ -424,7 +399,6 @@ document.addEventListener('DOMContentLoaded', function () {
     updateTable();
   }
 
-  // --- UPGRADED: Export image with all data labels ---
   function exportImage() {
     redrawCanvas();
     ctx.textAlign = 'center';
@@ -456,7 +430,6 @@ document.addEventListener('DOMContentLoaded', function () {
     redrawCanvas();
   }
 
-  // --- UPGRADED: Export a clean summary of zones ---
   function exportData() {
     if (dataStrokes.length === 0) {
       alert('No thermal data to export!');
@@ -490,12 +463,9 @@ document.addEventListener('DOMContentLoaded', function () {
   function loadSampleData() {
     clearCanvas();
     currentImage = null;
-    canvas.width = 800;
-    canvas.height = 600;
-    heatmapTempCanvas.width = 800;
-    heatmapTempCanvas.height = 600;
-    drawingPreviewCanvas.width = 800;
-    drawingPreviewCanvas.height = 600;
+    [canvas.width, canvas.height] = [800, 600];
+    [heatmapTempCanvas.width, heatmapTempCanvas.height] = [800, 600];
+    [drawingPreviewCanvas.width, drawingPreviewCanvas.height] = [800, 600];
     dataStrokes = [
       {
         id: Date.now() + 1,
